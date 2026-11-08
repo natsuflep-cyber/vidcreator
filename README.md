@@ -21,7 +21,7 @@ vercel.json              diz à Vercel para servir a pasta public/
 ## Renderizar no seu computador
 Requisitos: Python 3.9+ e ffmpeg instalado (`ffmpeg -version` deve funcionar).
 ```bash
-pip install -r requirements.txt
+pip install -r render/requirements.txt
 
 # pré-visualizar alguns instantes (gera render/test.jpg)
 python render/render.py test 4 20 50 70 91
