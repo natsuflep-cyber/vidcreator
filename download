@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+seg/
+render/test.jpg
+.vercel
