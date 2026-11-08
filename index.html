@@ -1,29 +1,200 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>A Última Vez</title>
-  <meta name="description" content="Animação: a última vez que você viu alguém que ama.">
-  <style>
-    :root { color-scheme: dark; --bg:#14122e; --fg:#f4f1ff; --accent:#ffe246; }
-    * { box-sizing: border-box; }
-    body { margin:0; min-height:100vh; display:flex; flex-direction:column; align-items:center;
-           justify-content:center; gap:20px; padding:24px 16px; background:linear-gradient(#14122e,#2a1a48);
-           color:var(--fg); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
-    h1 { margin:0; font-size:clamp(1.6rem,5vw,2.4rem); letter-spacing:.02em; color:var(--accent); }
-    p  { margin:0; opacity:.8; text-align:center; }
-    video { width:min(92vw,420px); aspect-ratio:9/16; border-radius:18px; background:#000;
-            box-shadow:0 20px 60px rgba(0,0,0,.5); }
-    a.btn { display:inline-block; padding:12px 22px; border-radius:999px; background:var(--accent);
-            color:#1b1530; font-weight:700; text-decoration:none; }
-    a.btn:focus-visible, video:focus-visible { outline:3px solid #fff; outline-offset:3px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verbo — sua narração vira vídeo</title>
+<meta name="description" content="Envie o áudio e o roteiro e o Verbo gera um vídeo vertical com legendas palavra por palavra.">
+<style>
+:root{color-scheme:dark;--y:#ffe246;--bg:#14122e}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;padding:24px 16px 48px;background:linear-gradient(#14122e,#2a1a48);color:#f4f1ff;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:980px;margin:0 auto;display:grid;gap:24px;grid-template-columns:1fr;}
+@media(min-width:860px){main{grid-template-columns:1fr 340px}header{grid-column:1/-1}}
+h1{margin:0;font-size:clamp(2rem,6vw,3rem);color:var(--y);letter-spacing:.02em}
+header p{margin:6px 0 0;opacity:.8}
+form{display:grid;gap:16px;align-content:start}
+label{display:grid;gap:6px;font-weight:600}
+small{font-weight:400;opacity:.75;line-height:1.4}
+input[type=text],textarea,input[type=file]{width:100%;padding:12px;border-radius:12px;border:1px solid #5a4a8a;background:#1d1940;color:inherit;font:inherit}
+textarea{min-height:240px;resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+label.chk{display:block}label.chk input{width:auto;margin-right:6px}
+button,a.btn{padding:12px 22px;border:0;border-radius:999px;background:var(--y);color:#1b1530;font:inherit;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block}
+button.sec{background:#3a2f6e;color:#f4f1ff}
+button:disabled{opacity:.5;cursor:not-allowed}
+button:focus-visible,a.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.side{display:grid;gap:12px;justify-items:center;align-content:start}
+canvas,video{width:min(100%,340px);aspect-ratio:9/16;border-radius:18px;background:#000;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+progress{width:min(100%,340px);height:10px}
+#msg{min-height:1.4em;text-align:center}
+.hide{display:none}
+</style>
 </head>
 <body>
-  <h1>A Última Vez</h1>
-  <p>Ninguém avisa quando é a última vez.</p>
-  <video src="a_ultima_vez.mp4" controls playsinline preload="metadata"></video>
-  <a class="btn" href="a_ultima_vez.mp4" download>Baixar vídeo</a>
+<main>
+<header><h1>Verbo</h1><p>Envie a narração e o roteiro. O vídeo é feito aqui, no seu navegador.</p></header>
+
+<form id="f" onsubmit="return false">
+  <label>Áudio da narração (mp3, wav, m4a…)
+    <input id="aud" type="file" accept="audio/*" required>
+    <small id="dur">Nenhum áudio escolhido.</small>
+  </label>
+  <label>Título (opcional)
+    <input id="tit" type="text" maxlength="40" placeholder="Ex.: A Última Vez">
+  </label>
+  <label>Roteiro
+    <textarea id="txt" placeholder="Uma frase por linha.&#10;Deixe uma linha em branco para trocar de cena (muda o fundo).&#10;&#10;Ninguém avisa quando é a *última vez*."></textarea>
+    <small>Uma frase por linha; linha em branco = nova cena. Destaques: *amarelo*, ~vermelho~, =verde=. Para várias palavras: *três horas*. O tempo de cada frase é distribuído pela duração do áudio, em proporção ao tamanho do texto.</small>
+  </label>
+  <label class="chk"><input id="leg" type="checkbox" checked> Mostrar legendas no vídeo
+    <small>Desmarcado, o vídeo sai só com o fundo animado e o título. O roteiro vira opcional (se preencher, ele ainda define as trocas de cena).</small>
+  </label>
+  <div class="row">
+    <button id="bPrev" class="sec" type="button">▶ Prévia</button>
+    <button id="bGen" type="button">🎬 Gerar vídeo</button>
+    <button id="bStop" class="sec hide" type="button">Parar</button>
+  </div>
+  <small>Durante a geração, mantenha esta aba aberta e visível: o vídeo é gravado em tempo real (leva a duração do áudio).</small>
+</form>
+
+<section class="side" aria-live="polite">
+  <canvas id="cv" width="576" height="1024"></canvas>
+  <progress id="bar" value="0" max="1"></progress>
+  <div id="msg"></div>
+  <video id="out" class="hide" controls playsinline></video>
+  <a id="dl" class="btn hide">⬇ Baixar vídeo</a>
+</section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+const W=576,H=1024,cv=$('cv'),g=cv.getContext('2d');
+const PAL=[[[22,20,52],[48,26,72]],[[14,42,70],[22,92,110]],[[60,20,50],[140,50,70]],[[20,50,40],[40,110,80]],[[50,30,20],[130,80,40]],[[30,20,70],[80,50,140]]];
+const COL={y:'#ffe246',r:'#ff5460',g:'#60f08c'},MK={'*':'y','~':'r','=':'g'};
+let buf=null,PH=[],SS=[],stopFlag=false,busy=false;
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,k)=>a+(b-a)*k;
+const BK=Array.from({length:14},(_,i)=>({x:(i*97%W),y:(i*211%H),r:40+(i*37%70),s:.15+(i%5)*.07,p:i*1.7}));
+
+$('aud').onchange=async e=>{
+  const f=e.target.files[0];buf=null;if(!f)return;
+  $('dur').textContent='Lendo áudio…';
+  try{const ac=new AudioContext();buf=await ac.decodeAudioData(await f.arrayBuffer());ac.close();
+    $('dur').textContent=f.name+' — '+buf.duration.toFixed(1)+' s';draw(0)}
+  catch(err){$('dur').textContent='Não consegui ler esse áudio. Tente mp3 ou wav.'}
+};
+
+function parse(txt,dur){
+  const ph=[];
+  txt.replace(/\r/g,'').trim().split(/\n\s*\n/).forEach((s,si)=>
+    s.split('\n').map(l=>l.trim()).filter(Boolean).forEach(l=>ph.push({si,l})));
+  const wt=ph.map(p=>p.l.replace(/[*~=]/g,'').length+8),tot=wt.reduce((a,b)=>a+b,0);
+  let c=0;
+  ph.forEach((p,i)=>{
+    p.a=dur*c/tot;c+=wt[i];p.b=dur*c/tot;
+    const toks=p.l.split(/\s+/),ws=toks.map(t=>t.replace(/[*~=]/g,'').length+1.5),wsum=ws.reduce((a,b)=>a+b,0),end=p.a+(p.b-p.a)*.88;
+    let cur='w',cc=0;
+    p.words=toks.map((t,j)=>{
+      if(MK[t[0]])cur=MK[t[0]];
+      const col=cur;if(t.length>1&&MK[t[t.length-1]])cur='w';
+      const s=p.a+(end-p.a)*cc/wsum;cc+=ws[j];
+      return{t:t.replace(/[*~=]/g,'').toUpperCase(),s,col}
+    });
+  });
+  SS=[];ph.forEach(p=>{if(SS[p.si]===undefined)SS[p.si]=p.a});
+  return ph;
+}
+
+function layout(p){
+  for(let s=72;s>=34;s-=4){
+    g.font='800 '+s+'px system-ui,Arial,sans-serif';
+    const sp=g.measureText(' ').width,lines=[[]],widths=[0];
+    p.words.forEach(w=>{
+      w.w=g.measureText(w.t).width;let L=lines.length-1;
+      if(lines[L].length&&widths[L]+sp+w.w>W-80){lines.push([]);widths.push(0);L++}
+      widths[L]+=(lines[L].length?sp:0)+w.w;lines[L].push(w);
+    });
+    if(lines.length*s*1.25<=560||s===34){
+      const y0=H*.56-lines.length*s*1.25/2;
+      lines.forEach((ln,i)=>{let x=(W-widths[i])/2;ln.forEach(w=>{w.x=x;w.y=y0+(i+.8)*s*1.25;x+=w.w+sp})});
+      p.size=s;return;
+    }
+  }
+}
+
+function draw(t){
+  const d=buf?buf.duration:1;
+  let p=PH.find(q=>t>=q.a&&t<q.b);
+  const si=p?p.si:(PH.length&&t>=PH[PH.length-1].b?PH[PH.length-1].si:0);
+  const k=si?clamp((t-(SS[si]||0))/.9):1,A=PAL[(si-1+PAL.length)%PAL.length],B=PAL[si%PAL.length];
+  const c=j=>A[j].map((v,i)=>lerp(v,B[j][i],k)|0);
+  const gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,'rgb('+c(0)+')');gr.addColorStop(1,'rgb('+c(1)+')');
+  g.globalAlpha=1;g.fillStyle=gr;g.fillRect(0,0,W,H);
+  BK.forEach(b=>{g.beginPath();g.arc(b.x+Math.sin(t*b.s+b.p)*40,(b.y-t*14*b.s*3+H*3)%H,b.r,0,7);g.fillStyle='rgba(255,255,255,.07)';g.fill()});
+  g.textAlign='left';
+  const tit=$('tit').value.trim();
+  if(tit){g.font='800 34px system-ui,Arial';g.fillStyle=COL.y;g.textAlign='center';g.fillText(tit.toUpperCase(),W/2,110);g.textAlign='left'}
+  if(p&&$('leg').checked){
+    if(!p.size)layout(p);
+    g.font='800 '+p.size+'px system-ui,Arial,sans-serif';g.lineJoin='round';
+    g.globalAlpha=clamp((t-p.a)/.2);
+    p.words.forEach(w=>{
+      const on=t>=w.s,pop=on?clamp(1-(t-w.s)/.18):0,sc=1+.18*pop;
+      g.save();g.translate(w.x+w.w/2,w.y-p.size*.3);g.scale(sc,sc);
+      g.lineWidth=p.size/5;g.strokeStyle='rgba(0,0,0,.75)';g.strokeText(w.t,-w.w/2,0);
+      g.fillStyle=on?(COL[w.col]||'#fff'):'rgba(255,255,255,.3)';g.fillText(w.t,-w.w/2,0);g.restore();
+    });
+    g.globalAlpha=1;
+  }
+  g.fillStyle='rgba(255,255,255,.25)';g.fillRect(0,H-10,W,10);
+  g.fillStyle=COL.y;g.fillRect(0,H-10,W*clamp(t/d),10);
+}
+
+function ready(){
+  if(!buf){$('msg').textContent='Escolha o áudio primeiro.';return false}
+  if($('leg').checked&&!$('txt').value.trim()){$('msg').textContent='Escreva o roteiro.';return false}
+  return true;
+}
+function setBusy(b,rec){busy=b;$('bPrev').disabled=b;$('bGen').disabled=b;$('bStop').classList.toggle('hide',!b)}
+
+async function run(rec){
+  if(busy||!ready())return;
+  PH=parse($('txt').value,buf.duration);stopFlag=false;setBusy(true);
+  $('out').classList.add('hide');$('dl').classList.add('hide');
+  const ac=new AudioContext(),src=ac.createBufferSource();src.buffer=buf;
+  let rc=null,chunks=[],mime='';
+  if(rec){
+    if(typeof MediaRecorder==='undefined'){$('msg').textContent='Este navegador não grava vídeo. Use Chrome, Edge ou Safari recente.';ac.close();setBusy(false);return}
+    const dst=ac.createMediaStreamDestination();src.connect(dst);
+    const st=cv.captureStream(30);dst.stream.getAudioTracks().forEach(t=>st.addTrack(t));
+    mime=['video/mp4;codecs=avc1,mp4a.40.2','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(m=>MediaRecorder.isTypeSupported(m))||'';
+    rc=new MediaRecorder(st,mime?{mimeType:mime,videoBitsPerSecond:4e6}:{});
+    rc.ondataavailable=e=>e.data.size&&chunks.push(e.data);rc.start(500);
+  }else src.connect(ac.destination);
+  const t0=ac.currentTime+.3,end=buf.duration+.8;src.start(t0);
+  $('msg').textContent=rec?'Gravando… não feche nem troque de aba.':'Tocando prévia…';
+  await new Promise(res=>{(function f(){
+    const t=ac.currentTime-t0;draw(Math.max(0,t));$('bar').value=clamp(t/end);
+    if(t>=end||stopFlag)return res();requestAnimationFrame(f)})()});
+  try{src.stop()}catch(e){}
+  if(rec){
+    await new Promise(r=>{rc.onstop=r;rc.stop()});
+    if(!stopFlag&&chunks.length){
+      const type=(rc.mimeType||mime||'video/webm').split(';')[0],ext=type.includes('mp4')?'mp4':'webm';
+      const url=URL.createObjectURL(new Blob(chunks,{type}));
+      $('out').src=url;$('out').classList.remove('hide');
+      const nm=($('tit').value.trim()||'verbo').toLowerCase().replace(/[^a-z0-9]+/g,'-');
+      $('dl').href=url;$('dl').download=nm+'.'+ext;$('dl').classList.remove('hide');
+      $('msg').textContent='Pronto! Formato: '+ext.toUpperCase()+'.';
+    }else $('msg').textContent='Geração cancelada.';
+  }else $('msg').textContent='';
+  ac.close();setBusy(false);$('bar').value=0;
+}
+$('bPrev').onclick=()=>run(false);
+$('bGen').onclick=()=>run(true);
+$('bStop').onclick=()=>{stopFlag=true};
+draw(0);
+</script>
 </body>
 </html>

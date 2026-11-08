@@ -1,52 +1,16 @@
-# A Última Vez
+# Verbo
 
-Animação vertical (576×1024, 30 fps, 92 s) feita 100% por código em Python (OpenCV + Pillow + ffmpeg),
-sincronizada com a narração em `assets/narracao.mp3`. O site em `public/` apenas exibe o vídeo pronto.
+Site estático: você envia o **áudio** da narração e cola o **roteiro**, e o vídeo vertical (576×1024)
+com legendas palavra por palavra é gerado e gravado no próprio navegador. Nada para editar nos arquivos.
 
-## Importante sobre a Vercel
-A Vercel **não** consegue renderizar o vídeo (não tem ffmpeg e as funções têm limite de tempo).
-Por isso o fluxo é: **renderizar no seu computador** → colocar o `.mp4` em `public/` → subir no GitHub → a Vercel publica a página.
-O vídeo já renderizado está em `public/a_ultima_vez.mp4`, então você pode publicar direto.
+## Como usar
+1. Escolha o áudio. 2. Cole o roteiro (uma frase por linha; linha em branco = nova cena/fundo).
+3. Opção "Mostrar legendas" (marcada por padrão). Destaques: `*amarelo*`, `~vermelho~`, `=verde=`. 4. **Prévia** ou **Gerar vídeo** e depois **Baixar**.
 
-## Estrutura
-```
-assets/narracao.mp3      áudio da narração
-render/lib.py            desenho: formas, personagens, props, texto
-render/render.py         cenas, legenda palavra por palavra, tempos e exportação
-public/index.html        página que toca o vídeo (é isso que a Vercel serve)
-public/a_ultima_vez.mp4  vídeo final
-vercel.json              diz à Vercel para servir a pasta public/
-```
+## Publicar (Vercel)
+`public/` é servido como site estático (veja `vercel.json`). Basta `git push`; não há build.
+Se o projeto estiver numa subpasta do repositório, defina *Root Directory* na Vercel.
 
-## Renderizar no seu computador
-Requisitos: Python 3.9+ e ffmpeg instalado (`ffmpeg -version` deve funcionar).
-```bash
-pip install -r render/requirements.txt
-
-# pré-visualizar alguns instantes (gera render/test.jpg)
-python render/render.py test 4 20 50 70 91
-
-# renderizar o vídeo completo (leva alguns minutos)
-python render/render.py full public/a_ultima_vez.mp4
-```
-Se der erro de fonte, defina `FONT_PATH` com o caminho de um arquivo `.ttf` em negrito.
-
-## Mudar o áudio ou a história
-- Troque `assets/narracao.mp3` e ajuste a lista `PHR` em `render/render.py`
-  (cada item é: texto, início em segundos, fim em segundos).
-- Ajuste `DUR` (duração total) e a lista `SCENES` (início, fim, função da cena).
-- Cada cena é uma função `scN` em `render/render.py`; personagens ficam em `render/lib.py`
-  (`davi`, `rita`, `mom`, `kid`).
-
-## Publicar no GitHub + Vercel
-```bash
-git init
-git add .
-git commit -m "A Última Vez"
-git branch -M main
-git remote add origin https://github.com/SEU-USUARIO/a-ultima-vez.git
-git push -u origin main
-```
-1. Em vercel.com: **Add New → Project** e importe o repositório.
-2. **Framework Preset:** Other. **Output Directory:** `public` (o `vercel.json` já indica isso). Sem build command.
-3. **Deploy.** A cada `git push`, a Vercel publica de novo.
+## Extra
+`render/` e `assets/` são o renderizador Python antigo da animação "A Última Vez" (opcional, só no seu computador).
+O vídeo pronto está em `public/exemplo/a_ultima_vez.mp4`.

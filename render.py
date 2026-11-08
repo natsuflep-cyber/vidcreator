@@ -13,7 +13,7 @@ WHT = (255, 255, 255)
 DK = (30, 24, 30)
 
 PHR = [
-    (" avisa quando é a última vez.", 0.0, 2.33),
+    ("Ninguém avisa quando é a última vez.", 0.0, 2.33),
     ("A última vez que sua mãe te pegou no colo.", 3.02, 5.26),
     ("Você não sabia.", 5.8, 6.56),
     ("Ela também não.", 7.03, 7.75),
